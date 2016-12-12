@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2014  Red Hat, Inc.
+# Copyright © 2013-2014  Red Hat, Inc.
 #
 # This copyrighted material is made available to anyone wishing to use,
 # modify, copy, or redistribute it subject to the terms and conditions
@@ -17,14 +17,72 @@
 # code or documentation are not subject to the GNU General Public
 # License and may only be used or replicated with the express permission
 # of Red Hat, Inc.
-#
+"""
+This module handles the creation and configuration of the Flask application
+object.
+"""
+import logging
+import logging.handlers
+import os
+import sys
 
-'''
-Makes nuancier an application behind a reverse proxy and thus ensure the
-redirects are using ``https``.
+from sqlalchemy.orm import sessionmaker, scoped_session
+import dogpile.cache
+import flask
+import sqlalchemy
 
-Source: http://flask.pocoo.org/snippets/35/ by Peter Hansen
-'''
+try:
+    import flask_fas_openid  # NOQA
+except ImportError:
+    from flask.ext import fas_openid as flask_fas_openid  # NOQA
+
+
+def create_app(app_name='Nuancier'):
+    app = flask.Flask(app_name)  # NOQA
+    app.config.from_object('nuancier.default_config')
+    if 'NUANCIER_CONFIG' in os.environ:  # pragma: no cover
+        app.config.from_envvar('NUANCIER_CONFIG')
+
+    app.fas = flask_fas_openid.FAS(app)
+    app.wsgi_app = ReverseProxied(app.wsgi_app)
+    app.cache = dogpile.cache.make_region().configure(
+        app.config.get('NUANCIER_CACHE_BACKEND'),
+        **app.config.get('NUANCIER_CACHE_KWARGS', {})
+    )
+    app.db_engine = sqlalchemy.create_engine(
+        app.config['DB_URL'], echo=False, pool_recycle=3600)
+    app.db_session = scoped_session(sessionmaker(bind=app.db_engine))
+
+    return app
+
+
+def default_log_config(app):
+    # Set up the logger
+    # Send emails for big exception
+    mail_handler = logging.handlers.SMTPHandler(
+        app.config.get('NUANCIER_EMAIL_SMTP_SERVER', '127.0.0.1'),
+        app.config.get('NUANCIER_EMAIL_FROM', 'nobody@fedoraproject.org'),
+        app.config.get('NUANCIER_EMAIL_ERROR_TO', 'admin@fedoraproject.org'),
+        '[Nuancier] error')
+    mail_handler.setFormatter(logging.Formatter('''
+        Message type:       %(levelname)s
+        Location:           %(pathname)s:%(lineno)d
+        Module:             %(module)s
+        Function:           %(funcName)s
+        Time:               %(asctime)s
+
+        Message:
+
+        %(message)s
+    '''))
+    mail_handler.setLevel(logging.ERROR)
+    if not app.debug:
+        app.logger.addHandler(mail_handler)
+
+    # Log to stderr as well
+    stderr_log = logging.StreamHandler(sys.stderr)
+    stderr_log.setLevel(logging.INFO)
+    app.logger.addHandler(stderr_log)
 
 
 class ReverseProxied(object):

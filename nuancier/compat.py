@@ -18,20 +18,23 @@
 # License and may only be used or replicated with the express permission
 # of Red Hat, Inc.
 """
-Nuancier is a web application used to vote for supplimentary wallpapers in
-Fedora.
+Handles compatibility imports for optional dependencies and flask extensions
 """
 from __future__ import absolute_import, unicode_literals
 
-# The import order matters here: the application must be imported first since
-# that triggers the application's creation.
-from nuancier.application import create_app, default_log_config  # NOQA
+# Importing from flask.ext is deprecated, so try the new package first
+try:
+    import flask_fas_openid  # NOQA
+except ImportError:
+    from flask.ext import fas_openid as flask_fas_openid  # NOQA
 
-app = create_app()
-default_log_config(app)
+try:
+    import flask_wtf  # NOQA
+except ImportError:
+    from flask.ext import wtf as flask_wtf  # NOQA
 
-from nuancier import admin, compat, default_config, forms  # NOQA
-from nuancier import lib, notifications, ui, user_utils  # NOQA
-
-
-__version__ = '0.10.0'
+# Pillow is an optional dependency
+try:
+    from PIL import Image  # NOQA
+except ImportError:
+    import Image  # NOQA

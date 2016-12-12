@@ -26,11 +26,13 @@ WTF Forms of the nuancier Flask application.
 import datetime
 
 import wtforms as wtf
-# pylint cannot import flask extension correctly
-# pylint: disable=E0611,F0401
-from flask.ext import wtf as flask_wtf
 
-from nuancier import APP
+from nuancier import app
+from nuancier.compat import flask_wtf
+try:
+    FlaskForm = flask_wtf.FlaskForm
+except AttributeError:
+    FlaskForm = flask_wtf.Form
 
 
 # We apparently use old style super in our __init__
@@ -52,7 +54,7 @@ def is_number(form, field):
         raise wtf.ValidationError('Field must contain a number')
 
 
-class BaseForm(flask_wtf.Form):
+class BaseForm(FlaskForm):
     """
     Provide a base form class.
 
@@ -67,7 +69,7 @@ class BaseForm(flask_wtf.Form):
     """
 
     def __init__(self, *args, **kwargs):
-        delta = APP.config.get('WTF_CSRF_TIME_LIMIT', 3600)
+        delta = app.config.get('WTF_CSRF_TIME_LIMIT', 3600)
 
         try:
             version_tuple = tuple(int(v) for v in flask_wtf.__version__.split('.'))

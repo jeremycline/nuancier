@@ -39,12 +39,12 @@ if args.config:
         config = os.path.join(os.getcwd(), config)
     os.environ['NUANCIER_CONFIG'] = config
 
-from nuancier import APP
+from nuancier import app
 
 if args.profile:
     from werkzeug.contrib.profiler import ProfilerMiddleware
-    APP.config['PROFILE'] = True
-    APP.wsgi_app = ProfilerMiddleware(APP.wsgi_app, restrictions=[30])
+    app.config['PROFILE'] = True
+    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[30])
 
-APP.debug = True
-APP.run(host=args.host, port=int(args.port))
+app.debug = True
+app.run(host=args.host, port=int(args.port))

@@ -28,7 +28,7 @@ import warnings
 
 from email.mime.text import MIMEText
 
-import nuancier
+from nuancier import app
 
 
 ## Let's ignore the warning about a global variable being in lower case
@@ -70,14 +70,14 @@ The Nuancier administrators team
     msg = MIMEText(message)
     msg['Subject'] = '[Nuancier] {0} has been rejected'.format(
         img_title.encode('utf-8'))
-    from_email = nuancier.APP.config.get(
+    from_email = app.config.get(
         'NUANCIER_EMAIL_FROM', 'nobody@fedoraproject.org')
     msg['From'] = from_email
     msg['To'] = to_email
 
     # Send the message via our own SMTP server, but don't include the
     # envelope header.
-    smtp = smtplib.SMTP(nuancier.APP.config.get(
+    smtp = smtplib.SMTP(app.config.get(
         'NUANCIER_EMAIL_SMTP_SERVER', 'localhost'))
     smtp.sendmail(from_email, [to_email], msg.as_string())
     smtp.quit()

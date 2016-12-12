@@ -85,14 +85,14 @@ class Nuanciertests(Modeltests):
         """ Set up the environnment, ran before every tests. """
         super(Nuanciertests, self).setUp()
 
-        nuancier.APP.config['TESTING'] = True
-        nuancier.APP.logger.handlers = []
+        nuancier.app.config['TESTING'] = True
+        nuancier.app.logger.handlers = []
         nuancier.SESSION = self.session
         nuancier.admin.SESSION = self.session
         nuancier.ui.SESSION = self.session
-        nuancier.APP.config['PICTURE_FOLDER'] = PICTURE_FOLDER
-        nuancier.APP.config['CACHE_FOLDER'] = CACHE_FOLDER
-        self.app = nuancier.APP.test_client()
+        nuancier.app.config['PICTURE_FOLDER'] = PICTURE_FOLDER
+        nuancier.app.config['CACHE_FOLDER'] = CACHE_FOLDER
+        self.app = nuancier.app.test_client()
 
     def test_is_nuancier_admin(self):
         """ Test the is_nuancier_admin function. """
@@ -134,7 +134,7 @@ class Nuanciertests(Modeltests):
         self.assertTrue('<h1>Nuancier</h1>' in output.data)
 
         user = FakeFasUser()
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/logout/', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue(
@@ -200,7 +200,7 @@ class Nuanciertests(Modeltests):
 
         # Fails - No election in the DB
         user = FakeFasUser()
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contribute/1')
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">No election found</li>'
@@ -210,7 +210,7 @@ class Nuanciertests(Modeltests):
         upload_path = os.path.join(PICTURE_FOLDER, 'F21')
 
         # Fails - Election closed for submission
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contribute/2', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue(
@@ -220,7 +220,7 @@ class Nuanciertests(Modeltests):
 
         # Fails - CLA not done
         user.cla_done = False
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contribute/3')
             self.assertEqual(output.status_code, 302)
 
@@ -231,7 +231,7 @@ class Nuanciertests(Modeltests):
                 'License Agreement to use nuancier</li>' in output.data)
 
         user.cla_done = True
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contribute/3')
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<h1>Contribute a supplemental wallpaper</h1>'
@@ -470,7 +470,7 @@ class Nuanciertests(Modeltests):
         self.assertEqual(output.status_code, 302)
 
         user = FakeFasUser()
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/election/2/')
             self.assertEqual(output.status_code, 302)
             self.assertTrue('target URL: <a href="/election/2/vote/">'
@@ -484,7 +484,7 @@ class Nuanciertests(Modeltests):
 
         create_votes(self.session)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
 
             output = self.app.get('/election/2/')
             self.assertEqual(output.status_code, 302)
@@ -498,7 +498,7 @@ class Nuanciertests(Modeltests):
             self.assertTrue('var votelimit = 2 - 1;' in output.data)
 
         user.username = 'ralph'
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
 
             output = self.app.get('/election/2/')
             self.assertEqual(output.status_code, 200)
@@ -523,7 +523,7 @@ class Nuanciertests(Modeltests):
         user = FakeFasUser()
         # Fails; not CLA + 1
         user.groups = []
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/election/1/vote/', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">You must be in one more '
@@ -532,7 +532,7 @@ class Nuanciertests(Modeltests):
         # Fails; CLA not signed
         user.groups = ['packager', 'cla_done']
         user.cla_done = False
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/election/1/vote/', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">You must sign the CLA '
@@ -541,7 +541,7 @@ class Nuanciertests(Modeltests):
 
         # Works
         user.cla_done = True
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/election/1/vote')
             self.assertEqual(output.status_code, 301)
 
@@ -555,7 +555,7 @@ class Nuanciertests(Modeltests):
         approve_candidate(self.session)
 
         user = FakeFasUser()
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/election/1/vote/')
             self.assertEqual(output.status_code, 302)
 
@@ -572,7 +572,7 @@ class Nuanciertests(Modeltests):
         create_votes(self.session)
 
         user.username = 'ralph'
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/election/2/vote/', follow_redirects=True)
             self.assertTrue('<h1>Election: Wallpaper F20 - 2013</h1>'
                             in output.data)
@@ -592,7 +592,7 @@ class Nuanciertests(Modeltests):
         user = FakeFasUser()
         # Fails; not CLA + 1
         user.groups = []
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.post('/election/1/voted/',
                                    follow_redirects=True)
             self.assertEqual(output.status_code, 200)
@@ -602,7 +602,7 @@ class Nuanciertests(Modeltests):
         # Fails; CLA not signed
         user.groups = ['packager', 'cla_done']
         user.cla_done = False
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.post('/election/1/voted/',
                                    follow_redirects=True)
             self.assertEqual(output.status_code, 200)
@@ -612,7 +612,7 @@ class Nuanciertests(Modeltests):
 
         # Fails: no elections
         user.cla_done = True
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             # Edit the first election
             output = self.app.get('/election/1/vote/')
             self.assertEqual(output.status_code, 200)
@@ -624,7 +624,7 @@ class Nuanciertests(Modeltests):
         approve_candidate(self.session)
 
         # Works
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             # No CSRF
             output = self.app.post('/election/1/voted/')
             self.assertEqual(output.status_code, 200)
@@ -729,7 +729,7 @@ class Nuanciertests(Modeltests):
         # Works
         user.username = 'toshio'
         user.groups.append('designteam')
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             # Works
             data = {
                 'selection': [3, 4],
@@ -817,7 +817,7 @@ class Nuanciertests(Modeltests):
         # Fails - not an admin
         user = FakeFasUser()
         user.groups = ['packager', 'cla_done']
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/')
             self.assertEqual(output.status_code, 302)
 
@@ -829,7 +829,7 @@ class Nuanciertests(Modeltests):
 
         # Fails - did not sign the CLA
         user.cla_done = False
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/')
             self.assertEqual(output.status_code, 302)
 
@@ -845,7 +845,7 @@ class Nuanciertests(Modeltests):
         # Fails - is not CLA + 1
         user.cla_done = True
         user.groups = []
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/')
             self.assertEqual(output.status_code, 302)
 
@@ -859,7 +859,7 @@ class Nuanciertests(Modeltests):
 
         # Success
         user.groups = ['packager', 'cla_done', 'sysadmin-main']
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/')
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<h1>Nuancier Admin -- Version'
@@ -890,7 +890,7 @@ class Nuanciertests(Modeltests):
         self.assertEqual(output.status_code, 302)
 
         user = FakeFasUser()
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/1/edit/')
             self.assertEqual(output.status_code, 302)
 
@@ -901,14 +901,14 @@ class Nuanciertests(Modeltests):
                 'reviewer of nuancier</li>' in output.data)
 
         user.groups.append('designteam')
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/1/edit/', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">You are not an administrator'
                             ' of nuancier</li>' in output.data)
 
         user.groups.append('sysadmin-main')
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/1/edit/')
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">No election found</li>'
@@ -916,7 +916,7 @@ class Nuanciertests(Modeltests):
 
         create_elections(self.session)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             # Check the admin page before the edit
             output = self.app.get('/admin/')
             self.assertEqual(output.status_code, 200)
@@ -1020,7 +1020,7 @@ class Nuanciertests(Modeltests):
 
         user = FakeFasUser()
         user.groups = ['packager', 'cla_done']
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/new/')
             self.assertEqual(output.status_code, 302)
 
@@ -1031,7 +1031,7 @@ class Nuanciertests(Modeltests):
                 'reviewer of nuancier</li>' in output.data)
 
         user.groups.append('designteam')
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/new/', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">You are not an administrator'
@@ -1040,7 +1040,7 @@ class Nuanciertests(Modeltests):
         user.groups.append('sysadmin-main')
         create_elections(self.session)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             # Check the admin page before the edit
             output = self.app.get('/admin/')
             self.assertEqual(output.status_code, 200)
@@ -1207,7 +1207,7 @@ class Nuanciertests(Modeltests):
 
         user = FakeFasUser()
         user.groups = ['packager', 'cla_done']
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/review/1/')
             self.assertEqual(output.status_code, 302)
 
@@ -1219,7 +1219,7 @@ class Nuanciertests(Modeltests):
 
         user.groups.append('sysadmin-main')
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/review/1/', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">No election found</li>'
@@ -1227,7 +1227,7 @@ class Nuanciertests(Modeltests):
 
         create_elections(self.session)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/review/1/', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">The results of this election'
@@ -1262,7 +1262,7 @@ class Nuanciertests(Modeltests):
 
         user = FakeFasUser()
         user.groups = ['packager', 'cla_done']
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.post('/admin/review/1/process')
             self.assertEqual(output.status_code, 302)
 
@@ -1274,7 +1274,7 @@ class Nuanciertests(Modeltests):
                 'reviewer of nuancier</li>' in output.data)
 
         user.groups.append('designteam')
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.post('/admin/review/1/process',
                                    follow_redirects=True)
             self.assertEqual(output.status_code, 200)
@@ -1285,7 +1285,7 @@ class Nuanciertests(Modeltests):
         create_elections(self.session)
         create_candidates(self.session)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.post('/admin/review/1/process',
                                    follow_redirects=True)
             self.assertEqual(output.status_code, 200)
@@ -1309,7 +1309,7 @@ class Nuanciertests(Modeltests):
             self.assertTrue('<li class="error">No election found</li>'
                             in output.data)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             # Check the review page before changes
             output = self.app.get('/admin/review/3/all')
             self.assertEqual(output.status_code, 200)
@@ -1475,7 +1475,7 @@ class Nuanciertests(Modeltests):
 
         user = FakeFasUser()
         user.groups = ['packager', 'cla_done']
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/cache/2')
             self.assertEqual(output.status_code, 302)
 
@@ -1487,7 +1487,7 @@ class Nuanciertests(Modeltests):
 
         user.groups.append('sysadmin-main')
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/cache/2', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="error">No election found</li>'
@@ -1495,7 +1495,7 @@ class Nuanciertests(Modeltests):
 
         create_elections(self.session)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/admin/cache/2', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<li class="message">Cache regenerated for '
@@ -1557,7 +1557,7 @@ class Nuanciertests(Modeltests):
         create_candidates(self.session)
         deny_candidate(self.session)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contributions/')
             self.assertEqual(output.status_code, 200)
 
@@ -1579,7 +1579,7 @@ class Nuanciertests(Modeltests):
         deny_candidate(self.session)
 
         user = FakeFasUser()
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contribution/60/update')
             self.assertEqual(output.status_code, 200)
             self.assertTrue(
@@ -1609,7 +1609,7 @@ class Nuanciertests(Modeltests):
 
         upload_path = os.path.join(PICTURE_FOLDER, 'F21')
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contributions/')
             self.assertEqual(output.status_code, 200)
 
@@ -1618,7 +1618,7 @@ class Nuanciertests(Modeltests):
             self.assertTrue(
                 '<a href="/contribution/7/update">' in output.data)
 
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contribution/6/update')
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<h1>Update your candidate</h1>'
@@ -1768,7 +1768,7 @@ class Nuanciertests(Modeltests):
 
         user = FakeFasUser()
         user.cla_done = True
-        with user_set(nuancier.APP, user):
+        with user_set(nuancier.app, user):
             output = self.app.get('/contribute/3', follow_redirects=True)
             self.assertEqual(output.status_code, 200)
             self.assertTrue('<h1>Elections</h1>' in output.data)

@@ -6,13 +6,14 @@ import os
 
 os.environ['NUANCIER_CONFIG'] = '/etc/nuancier/nuancier.cfg'
 
-from nuancier import APP, SESSION, lib
+from nuancier import app, lib
 
-election = lib.get_election(SESSION, 1)
+
+election = lib.get_election(app.db_session, 1)
 lib.generate_cache(
-    SESSION,
+    app.db_session,
     election,
-    APP.config['PICTURE_FOLDER'],
-    APP.config['CACHE_FOLDER'],
-    APP.config['THUMB_SIZE'],
+    app.config['PICTURE_FOLDER'],
+    app.config['CACHE_FOLDER'],
+    app.config['THUMB_SIZE'],
 )

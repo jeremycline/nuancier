@@ -42,7 +42,7 @@ DB_URL = 'sqlite:////var/tmp/nuancier_lite.sqlite'
 SECRET_KEY = '<insert here your own key>'
 
 # FAS group for the nuancier admin
-#ADMIN_GROUP = 'sysadmin-nuancier'
+# ADMIN_GROUP = 'sysadmin-nuancier'
 ADMIN_GROUP = ('sysadmin-main', 'sysadmin-nuancier')
 
 # FAS group for the nuancier reviewers

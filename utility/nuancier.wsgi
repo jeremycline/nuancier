@@ -18,4 +18,4 @@
 
 
 ## The most import line to make the wsgi working
-#from nuancier import APP as application
+#from nuancier.app import APP as application

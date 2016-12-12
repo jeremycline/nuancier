@@ -29,54 +29,54 @@ import flask
 
 from sqlalchemy.exc import SQLAlchemyError
 
-import nuancier
 import nuancier.lib as nuancierlib
 
-from nuancier import APP, SESSION, LOG, nuancier_admin_required
+from nuancier import app
+from nuancier import user_utils, forms
 
 
-## Some of the object we use here have inherited methods which apparently
-## pylint does not detect.
+# Some of the object we use here have inherited methods which apparently
+# pylint does not detect.
 # pylint: disable=E1101, E1103
-## Apparently some of our methods have too many branches
+# Apparently some of our methods have too many branches
 # pylint: disable=R0912
-## And/Or too many return statements
+# And/Or too many return statements
 # pylint: disable=R0911
-## And/Or too many statements
+# And/Or too many statements
 # pylint: disable=R0915
 
 
-@APP.route('/admin/')
-@nuancier_admin_required
+@app.route('/admin/')
+@user_utils.nuancier_admin_required
 def admin_index():
     ''' Display the index page of the admin interface. '''
-    elections = nuancierlib.get_elections(SESSION)
+    elections = nuancierlib.get_elections(app.sesson)
     return flask.render_template('admin_index.html', elections=elections)
 
 
-@APP.route('/admin/<election_id>/edit/', methods=['GET', 'POST'])
-@nuancier_admin_required
+@app.route('/admin/<election_id>/edit/', methods=['GET', 'POST'])
+@user_utils.nuancier_admin_required
 def admin_edit(election_id):
     ''' Edit an election. '''
-    if not nuancier.is_nuancier_admin(flask.g.fas_user):
+    if not user_utils.is_nuancier_admin(flask.g.fas_user):
         flask.flash('You are not an administrator of nuancier',
-                        'error')
+                    'error')
         return flask.redirect(flask.url_for('msg'))
 
-    election = nuancierlib.get_election(SESSION, election_id)
+    election = nuancierlib.get_election(app.sesson, election_id)
 
     if not election:
         flask.flash('No election found', 'error')
         return flask.render_template('msg.html')
 
-    form = nuancier.forms.AddElectionForm()
+    form = forms.AddElectionForm()
     if flask.request.method == 'GET':
-        form = nuancier.forms.AddElectionForm(election=election)
+        form = forms.AddElectionForm(election=election)
 
     if form.validate_on_submit():
         try:
             election = nuancierlib.edit_election(
-                SESSION,
+                app.sesson,
                 election=election,
                 election_name=form.election_name.data,
                 election_folder=form.election_folder.data,
@@ -89,13 +89,13 @@ def admin_edit(election_id):
                 election_badge_link=form.election_badge_link.data,
                 user=flask.g.fas_user.username,
             )
-            SESSION.commit()
+            app.sesson.commit()
             flask.flash('Election updated')
         except SQLAlchemyError as err:
-            SESSION.rollback()
-            LOG.debug("User: %s could not edit election: %s ",
-                      flask.g.fas_user.username, election_id)
-            LOG.exception(err)
+            app.sesson.rollback()
+            app.log.debug("User: %s could not edit election: %s ",
+                          flask.g.fas_user.username, election_id)
+            app.log.exception(err)
             flask.flash('Could not edit this election, is this name or '
                         'folder already used?', 'error')
             return flask.render_template(
@@ -110,21 +110,21 @@ def admin_edit(election_id):
         form=form)
 
 
-@APP.route('/admin/new/', methods=['GET', 'POST'])
-@nuancier_admin_required
+@app.route('/admin/new/', methods=['GET', 'POST'])
+@user_utils.nuancier_admin_required
 def admin_new():
     ''' Create a new election. '''
-    if not nuancier.is_nuancier_admin(flask.g.fas_user):
+    if not user_utils.is_nuancier_admin(flask.g.fas_user):
         flask.flash('You are not an administrator of nuancier',
-                        'error')
+                    'error')
         return flask.redirect(flask.url_for('msg'))
 
-    form = nuancier.forms.AddElectionForm()
+    form = forms.AddElectionForm()
     if form.validate_on_submit():
 
         try:
             election = nuancierlib.add_election(
-                SESSION,
+                app.sesson,
                 election_name=form.election_name.data,
                 election_folder=form.election_folder.data,
                 election_year=form.election_year.data,
@@ -137,12 +137,12 @@ def admin_new():
                 user=flask.g.fas_user.username,
             )
 
-            SESSION.commit()
+            app.sesson.commit()
         except SQLAlchemyError as err:
-            SESSION.rollback()
-            LOG.debug("User: %s could not add an election",
-                      flask.g.fas_user.username)
-            LOG.exception(err)
+            app.sesson.rollback()
+            app.log.debug("User: %s could not add an election",
+                          flask.g.fas_user.username)
+            app.log.exception(err)
             flask.flash('Could not add this election, is this name or '
                         'folder already used?', 'error')
             return flask.render_template('admin_new.html', form=form)
@@ -155,11 +155,11 @@ def admin_new():
     return flask.render_template('admin_new.html', form=form)
 
 
-@APP.route('/admin/review/<election_id>/', methods=['GET'])
-@nuancier_admin_required
+@app.route('/admin/review/<election_id>/', methods=['GET'])
+@user_utils.nuancier_admin_required
 def admin_review(election_id, status='all'):
     ''' Review a new election. '''
-    election = nuancierlib.get_election(SESSION, election_id)
+    election = nuancierlib.get_election(app.sesson, election_id)
 
     if not election:
         flask.flash('No election found', 'error')
@@ -181,11 +181,11 @@ def admin_review(election_id, status='all'):
         'admin_review_status', election_id=election_id, status=status))
 
 
-@APP.route('/admin/review/<election_id>/<status>', methods=['GET'])
-@nuancier_admin_required
+@app.route('/admin/review/<election_id>/<status>', methods=['GET'])
+@user_utils.nuancier_admin_required
 def admin_review_status(election_id, status):
     ''' Review a new election depending on the status of the candidates. '''
-    election = nuancierlib.get_election(SESSION, election_id)
+    election = nuancierlib.get_election(app.sesson, election_id)
 
     if not election:
         flask.flash('No election found', 'error')
@@ -210,7 +210,7 @@ def admin_review_status(election_id, status):
         _status = True
 
     candidates = nuancierlib.get_candidates(
-        SESSION, election_id, approved=_status
+        app.sesson, election_id, approved=_status
     )
     if status == 'pending':
         candidates = [
@@ -225,29 +225,29 @@ def admin_review_status(election_id, status):
 
     template = 'admin_review.html'
     if election.election_public or election.election_open \
-            or not nuancier.is_nuancier_admin(flask.g.fas_user):
+            or not user_utils.is_nuancier_admin(flask.g.fas_user):
         template = 'admin_review_ro.html'
 
     return flask.render_template(
         template,
         election=election,
-        form=nuancier.forms.ConfirmationForm(),
+        form=forms.ConfirmationForm(),
         candidates=candidates,
         picture_folder=os.path.join(
-            APP.config['PICTURE_FOLDER'], election.election_folder),
+            app.config['PICTURE_FOLDER'], election.election_folder),
         cache_folder=os.path.join(
-            APP.config['CACHE_FOLDER'], election.election_folder),
+            app.config['CACHE_FOLDER'], election.election_folder),
         status=status,
     )
 
 
-@APP.route('/admin/review/<election_id>/process', methods=['POST'])
-@nuancier_admin_required
+@app.route('/admin/review/<election_id>/process', methods=['POST'])
+@user_utils.nuancier_admin_required
 def admin_process_review(election_id):
     ''' Process the reviewing of a new election. '''
-    if not nuancier.is_nuancier_admin(flask.g.fas_user):
+    if not user_utils.is_nuancier_admin(flask.g.fas_user):
         flask.flash('You are not an administrator of nuancier',
-                        'error')
+                    'error')
         return flask.redirect(flask.url_for('msg'))
 
     status = flask.request.args.get('status', None)
@@ -255,9 +255,9 @@ def admin_process_review(election_id):
     if status:
         endpoint = 'admin_review_status'
 
-    election = nuancierlib.get_election(SESSION, election_id)
+    election = nuancierlib.get_election(app.sesson, election_id)
 
-    form = nuancier.forms.ConfirmationForm()
+    form = forms.ConfirmationForm()
     if not form.validate_on_submit():
         flask.flash('Wrong input submitted', 'error')
         return flask.render_template('msg.html')
@@ -278,7 +278,7 @@ def admin_process_review(election_id):
             ' can no longer be changed', 'error')
         return flask.redirect(flask.url_for('results_list'))
 
-    candidates = nuancierlib.get_candidates(SESSION, election_id)
+    candidates = nuancierlib.get_candidates(app.sesson, election_id)
     candidates_id = [str(candidate.id) for candidate in candidates]
 
     candidates_selected = flask.request.form.getlist('candidates_id')
@@ -331,7 +331,7 @@ def admin_process_review(election_id):
 
     for candidate in selections:
         if candidate:
-            candidate = nuancierlib.get_candidate(SESSION, candidate)
+            candidate = nuancierlib.get_candidate(app.sesson, candidate)
             motif = None
             if len(motifs) > cnt:
                 motif = motifs[cnt].strip()
@@ -341,7 +341,7 @@ def admin_process_review(election_id):
             else:
                 candidate.approved = False
                 candidate.approved_motif = motif
-                if APP.config.get(
+                if app.config.get(
                         'NUANCIER_EMAIL_NOTIFICATIONS',
                         False):  # pragma: no cover
                     nuancierlib.notifications.email_publish(
@@ -349,14 +349,14 @@ def admin_process_review(election_id):
                         img_title=candidate.candidate_name,
                         motif=motif)
                 else:
-                    LOG.warning(
+                    app.log.warning(
                         'Should have sent an email to "%s" about "%s" that has'
                         ' been rejected because of "%s"',
                         candidate.submitter_email,
                         candidate.candidate_name,
                         motif)
 
-            SESSION.add(candidate)
+            app.sesson.add(candidate)
             msgs.append({
                 'topic': 'candidate.%s' % (action.lower()),
                 'msg': dict(
@@ -368,13 +368,13 @@ def admin_process_review(election_id):
         cnt += 1
 
     try:
-        SESSION.commit()
+        app.sesson.commit()
     except SQLAlchemyError as err:  # pragma: no cover
-        SESSION.rollback()
-        LOG.debug('User: "%s" could not approve/deny candidate(s) for '
-                  'election "%s"', flask.g.fas_user.username,
-                  election_id)
-        LOG.exception(err)
+        app.sesson.rollback()
+        app.log.debug('User: "%s" could not approve/deny candidate(s) for '
+                      'election "%s"', flask.g.fas_user.username,
+                      election_id)
+        app.log.exception(err)
         flask.flash('Could not approve/deny candidate', 'error')
 
     flask.flash('Candidate(s) updated')
@@ -389,11 +389,11 @@ def admin_process_review(election_id):
         endpoint, election_id=election_id, status=status))
 
 
-@APP.route('/admin/cache/<int:election_id>')
-@nuancier_admin_required
+@app.route('/admin/cache/<int:election_id>')
+@user_utils.nuancier_admin_required
 def admin_cache(election_id):
     ''' Regenerate the cache for this election. '''
-    election = nuancierlib.get_election(SESSION, election_id)
+    election = nuancierlib.get_election(app.sesson, election_id)
 
     next_url = None
     if 'next' in flask.request.args:
@@ -409,25 +409,25 @@ def admin_cache(election_id):
 
     try:
         nuancierlib.generate_cache(
-            session=SESSION,
+            session=app.sesson,
             election=election,
-            picture_folder=APP.config['PICTURE_FOLDER'],
-            cache_folder=APP.config['CACHE_FOLDER'],
-            size=APP.config['THUMB_SIZE'])
+            picture_folder=app.config['PICTURE_FOLDER'],
+            cache_folder=app.config['CACHE_FOLDER'],
+            size=app.config['THUMB_SIZE'])
         flask.flash('Cache regenerated for election %s' %
                     election.election_name)
     except nuancierlib.NuancierMultiExceptions as multierr:  # pragma: no cover
-        SESSION.rollback()
-        LOG.debug('User: "%s" could not generate cache for "%s"',
-                  flask.g.fas_user.username, election_id)
-        LOG.exception(multierr.messages)
+        app.sesson.rollback()
+        app.log.debug('User: "%s" could not generate cache for "%s"',
+                      flask.g.fas_user.username, election_id)
+        app.log.exception(multierr.messages)
         for msg in multierr.messages:
             flask.flash(msg, 'error')
     except nuancierlib.NuancierException as err:
-        SESSION.rollback()
-        LOG.debug('User: "%s" could not generate cache for "%s"',
-                  flask.g.fas_user.username, election_id)
-        LOG.exception(err)
+        app.sesson.rollback()
+        app.log.debug('User: "%s" could not generate cache for "%s"',
+                      flask.g.fas_user.username, election_id)
+        app.log.exception(err)
         flask.flash(err.message, 'error')
 
     return flask.redirect(next_url)
